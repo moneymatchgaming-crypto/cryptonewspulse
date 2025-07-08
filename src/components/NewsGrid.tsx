@@ -98,7 +98,7 @@ const NewsGrid = ({
       )}
 
       {/* See More Button */}
-      {pagination.hasMore && !loading && (
+      {!loading && (
         <div className="flex justify-center mt-8 pt-6 border-t border-crypto-accent/20">
           <button
             onClick={() => onLoadMore(pagination.page + 1)}
