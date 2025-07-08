@@ -992,9 +992,8 @@ export class ApiService {
       // Fallback to old method if backend is not available
       console.log('🔄 Falling back to direct RSS fetching...')
       try {
-        const [rssNews, cryptopanicNews, coingeckoNews, cryptocompareNews, messariNews, coingeckoNews2, cryptoslateNews] = await Promise.all([
+        const [rssNews, coingeckoNews, cryptocompareNews, messariNews, coingeckoNews2, cryptoslateNews] = await Promise.all([
           this.getNewsFromRSS(),
-          this.getNewsFromCryptoPanic(),
           this.getNewsFromCoinGecko(),
           this.getNewsFromCryptoCompare(),
           this.getNewsFromMessari(),
@@ -1003,7 +1002,7 @@ export class ApiService {
         ])
         
         // Combine all news sources and sort by date
-        const allNews = [...rssNews, ...cryptopanicNews, ...coingeckoNews, ...cryptocompareNews, ...messariNews, ...coingeckoNews2, ...cryptoslateNews]
+        const allNews = [...rssNews, ...coingeckoNews, ...cryptocompareNews, ...messariNews, ...coingeckoNews2, ...cryptoslateNews]
         console.log(`📄 Fallback: ${allNews.length} articles from direct sources`)
         
         const sortedNews = allNews
