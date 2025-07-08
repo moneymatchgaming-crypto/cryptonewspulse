@@ -88,9 +88,7 @@ const RSS_FEEDS = [
       'https://tokeninsight.com/rss/news'
 ]
 
-// CryptoPanic API
-const CRYPTOPANIC_API = 'https://cryptopanic.com/api/developer/v2'
-const CRYPTOPANIC_TOKEN = '5e6e936b6b0dc760e51ab317f87dd6a57df1bf0b'
+// CryptoPanic API (removed - using free APIs instead)
 
 // Additional crypto news APIs
 const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data'
@@ -100,9 +98,81 @@ const COINMARKETCAP_API = 'https://pro-api.coinmarketcap.com/v1'
 export class ApiService {
   // Fetch news from backend (with caching) - Fast loading for initial page
   static async getNewsFast(limit: number = 12): Promise<{ articles: NewsItem[], total: number }> {
-    console.log('🚀 Loading sample news...')
+    console.log('🚀 Fetching news from RSS feeds...')
     
-    // Use sample news to ensure the site always works
+    try {
+      // Try RSS2JSON API with API key
+      const RSS2JSON_API_KEY = import.meta.env.VITE_RSS2JSON_API_KEY || 'YOUR_API_KEY_HERE'
+      
+      if (RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE') {
+        console.log('⚠️ RSS2JSON API key not configured. Please add VITE_RSS2JSON_API_KEY to your environment variables.')
+        throw new Error('API key not configured')
+      }
+      
+      // Use the first few RSS feeds for fast loading
+      const fastFeeds = RSS_FEEDS.slice(0, 5)
+      const feedPromises = fastFeeds.map(async (feedUrl, index) => {
+        try {
+          const response = await axios.get('https://api.rss2json.com/v1/api.json', {
+            params: {
+              rss_url: feedUrl,
+              api_key: RSS2JSON_API_KEY,
+              count: Math.ceil(limit / fastFeeds.length)
+            },
+            timeout: 10000
+          })
+          
+          if (response.data && response.data.status === 'ok' && response.data.items) {
+            return this.parseRSSFromJSON(response.data, index)
+          }
+        } catch (error) {
+          console.log(`Failed to fetch ${feedUrl}:`, error.message)
+        }
+        return []
+      })
+      
+      const results = await Promise.allSettled(feedPromises)
+      const allArticles = results
+        .filter(result => result.status === 'fulfilled')
+        .flatMap(result => (result as PromiseFulfilledResult<NewsItem[]>).value)
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+        .slice(0, limit)
+      
+      if (allArticles.length > 0) {
+        console.log(`📰 Fetched ${allArticles.length} articles from RSS feeds`)
+        return { articles: allArticles, total: allArticles.length }
+      }
+      
+    } catch (error) {
+      console.log('RSS2JSON API failed:', error.message)
+    }
+    
+    // Fallback to CoinGecko news API (free, no token required)
+    try {
+      const coingeckoResponse = await axios.get(`${COINGECKO_API}/news`, {
+        timeout: 8000
+      })
+      
+      if (coingeckoResponse.data && coingeckoResponse.data.data) {
+        const articles = coingeckoResponse.data.data.slice(0, limit).map((item: any) => ({
+          id: `coingecko-${item.id}`,
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          urlToImage: item.image?.small || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+          publishedAt: item.published_at,
+          source: { name: item.source || 'CoinGecko' },
+          category: 'general' as const
+        }))
+        
+        console.log(`📰 Fetched ${articles.length} articles from CoinGecko`)
+        return { articles, total: articles.length }
+      }
+    } catch (coingeckoError) {
+      console.log('CoinGecko API failed:', coingeckoError.message)
+    }
+    
+    // Final fallback: return sample news
     const sampleNews = [
       {
         id: 'sample-1',
@@ -123,38 +193,102 @@ export class ApiService {
         publishedAt: new Date().toISOString(),
         source: { name: 'CryptoNewsPulse' },
         category: 'ethereum'
-      },
-      {
-        id: 'sample-3',
-        title: 'DeFi Protocols See Record TVL Growth',
-        description: 'Decentralized finance protocols are experiencing unprecedented growth in total value locked.',
-        url: 'https://defipulse.com',
-        urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'defi'
-      },
-      {
-        id: 'sample-4',
-        title: 'NFT Market Continues to Expand',
-        description: 'The NFT market is seeing continued growth with new platforms and collections gaining popularity.',
-        url: 'https://opensea.io',
-        urlToImage: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'nft'
       }
     ]
     
-    console.log(`📰 Loaded ${sampleNews.length} sample articles`)
-    return { articles: sampleNews.slice(0, limit), total: sampleNews.length }
+    console.log(`📰 Using sample news (${sampleNews.length} articles)`)
+    return { articles: sampleNews, total: sampleNews.length }
   }
 
   // Fetch news from backend (with caching) - Full content with pagination
   static async getNews(page: number = 1, limit: number = 12): Promise<{ articles: NewsItem[], total: number, page: number, totalPages: number }> {
-    console.log(`🚀 Loading sample news (page ${page}, limit ${limit})...`)
+    console.log(`🚀 Fetching news from RSS feeds (page ${page}, limit ${limit})...`)
     
-    // Use sample news to ensure the site always works
+    try {
+      // Try RSS2JSON API with API key
+      const RSS2JSON_API_KEY = import.meta.env.VITE_RSS2JSON_API_KEY || 'YOUR_API_KEY_HERE'
+      
+      if (RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE') {
+        console.log('⚠️ RSS2JSON API key not configured. Please add VITE_RSS2JSON_API_KEY to your environment variables.')
+        throw new Error('API key not configured')
+      }
+      
+      // Fetch from all RSS feeds
+      const feedPromises = RSS_FEEDS.map(async (feedUrl, index) => {
+        try {
+          const response = await axios.get('https://api.rss2json.com/v1/api.json', {
+            params: {
+              rss_url: feedUrl,
+              api_key: RSS2JSON_API_KEY,
+              count: 20 // Get more articles for pagination
+            },
+            timeout: 10000
+          })
+          
+          if (response.data && response.data.status === 'ok' && response.data.items) {
+            return this.parseRSSFromJSON(response.data, index)
+          }
+        } catch (error) {
+          console.log(`Failed to fetch ${feedUrl}:`, error.message)
+        }
+        return []
+      })
+      
+      const results = await Promise.allSettled(feedPromises)
+      const allArticles = results
+        .filter(result => result.status === 'fulfilled')
+        .flatMap(result => (result as PromiseFulfilledResult<NewsItem[]>).value)
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      
+      if (allArticles.length > 0) {
+        // Apply pagination
+        const startIndex = (page - 1) * limit
+        const endIndex = startIndex + limit
+        const articles = allArticles.slice(startIndex, endIndex)
+        const total = allArticles.length
+        const totalPages = Math.ceil(total / limit)
+        
+        console.log(`📰 Fetched ${articles.length} articles from RSS feeds (page ${page}/${totalPages})`)
+        return { articles, total, page, totalPages }
+      }
+      
+    } catch (error) {
+      console.log('RSS2JSON API failed:', error.message)
+    }
+    
+    // Fallback to CoinGecko news API (free, no token required)
+    try {
+      const coingeckoResponse = await axios.get(`${COINGECKO_API}/news`, {
+        timeout: 8000
+      })
+      
+      if (coingeckoResponse.data && coingeckoResponse.data.data) {
+        const allArticles = coingeckoResponse.data.data.map((item: any) => ({
+          id: `coingecko-${item.id}`,
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          urlToImage: item.image?.small || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+          publishedAt: item.published_at,
+          source: { name: item.source || 'CoinGecko' },
+          category: 'general' as const
+        }))
+        
+        // Apply pagination
+        const startIndex = (page - 1) * limit
+        const endIndex = startIndex + limit
+        const articles = allArticles.slice(startIndex, endIndex)
+        const total = allArticles.length
+        const totalPages = Math.ceil(total / limit)
+        
+        console.log(`📰 Fetched ${articles.length} articles from CoinGecko (page ${page}/${totalPages})`)
+        return { articles, total, page, totalPages }
+      }
+    } catch (coingeckoError) {
+      console.log('CoinGecko API failed:', coingeckoError.message)
+    }
+    
+    // Final fallback: return sample news
     const sampleNews = [
       {
         id: 'sample-1',
@@ -175,58 +309,11 @@ export class ApiService {
         publishedAt: new Date().toISOString(),
         source: { name: 'CryptoNewsPulse' },
         category: 'ethereum'
-      },
-      {
-        id: 'sample-3',
-        title: 'DeFi Protocols See Record TVL Growth',
-        description: 'Decentralized finance protocols are experiencing unprecedented growth in total value locked.',
-        url: 'https://defipulse.com',
-        urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'defi'
-      },
-      {
-        id: 'sample-4',
-        title: 'NFT Market Continues to Expand',
-        description: 'The NFT market is seeing continued growth with new platforms and collections gaining popularity.',
-        url: 'https://opensea.io',
-        urlToImage: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'nft'
-      },
-      {
-        id: 'sample-5',
-        title: 'Regulatory Developments Shape Crypto Landscape',
-        description: 'New regulatory frameworks are being developed globally to provide clarity for cryptocurrency markets.',
-        url: 'https://sec.gov',
-        urlToImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'regulation'
-      },
-      {
-        id: 'sample-6',
-        title: 'Altcoin Season Heats Up',
-        description: 'Alternative cryptocurrencies are showing strong performance as market sentiment improves.',
-        url: 'https://coinmarketcap.com',
-        urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
-        publishedAt: new Date().toISOString(),
-        source: { name: 'CryptoNewsPulse' },
-        category: 'general'
       }
     ]
     
-    // Apply pagination
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-    const articles = sampleNews.slice(startIndex, endIndex)
-    const total = sampleNews.length
-    const totalPages = Math.ceil(total / limit)
-    
-    console.log(`📰 Loaded ${articles.length} sample articles (page ${page}/${totalPages})`)
-    return { articles, total, page, totalPages }
+    console.log(`📰 Using sample news (${sampleNews.length} articles)`)
+    return { articles: sampleNews, total: sampleNews.length, page: 1, totalPages: 1 }
   }
 
   // Fetch cryptocurrency prices from CoinGecko (with caching)
