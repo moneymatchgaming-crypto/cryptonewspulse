@@ -557,8 +557,8 @@ export class ApiService {
                 return parsedNews
               }
             }
-          } catch (error) {
-            console.log(`❌ Failed to fetch ${feedUrl} with proxy ${proxy}:`, error.message)
+                  } catch (error: any) {
+          console.log(`❌ Failed to fetch ${feedUrl} with proxy ${proxy}:`, error.message)
             continue
           }
         }
@@ -577,7 +577,7 @@ export class ApiService {
               return parsedNews
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log(`❌ Local proxy also failed for: ${feedUrl}`, error.message)
         }
         
@@ -590,7 +590,7 @@ export class ApiService {
       console.log(`📊 Total RSS articles fetched: ${allNews.length}`)
       
       // Debug: Show breakdown by source for RSS feeds specifically
-      const rssSourceBreakdown = allNews.reduce((acc, article) => {
+      const rssSourceBreakdown = allNews.reduce((acc: Record<string, number>, article: any) => {
         const source = article.source.name
         acc[source] = (acc[source] || 0) + 1
         return acc
