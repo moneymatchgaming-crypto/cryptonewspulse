@@ -100,189 +100,133 @@ const COINMARKETCAP_API = 'https://pro-api.coinmarketcap.com/v1'
 export class ApiService {
   // Fetch news from backend (with caching) - Fast loading for initial page
   static async getNewsFast(limit: number = 12): Promise<{ articles: NewsItem[], total: number }> {
-    console.log('🚀 Fetching news from alternative sources...')
+    console.log('🚀 Loading sample news...')
     
-    try {
-      // Use CryptoPanic API as primary source (more reliable)
-      const cryptopanicResponse = await axios.get(`${CRYPTOPANIC_API}/posts/`, {
-        params: {
-          auth_token: CRYPTOPANIC_TOKEN,
-          filter: 'hot',
-          public: true,
-          limit: limit
-        },
-        timeout: 10000
-      })
-      
-      if (cryptopanicResponse.data && cryptopanicResponse.data.results) {
-        const articles = cryptopanicResponse.data.results.map((post: any) => ({
-          id: `cryptopanic-${post.id}`,
-          title: post.title,
-          description: post.metadata?.description || post.title,
-          url: post.url,
-          urlToImage: post.metadata?.image?.url || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: post.published_at,
-          source: { name: post.source?.title || 'CryptoPanic' },
-          category: 'general'
-        }))
-        
-        console.log(`📰 Fetched ${articles.length} articles from CryptoPanic`)
-        return { articles, total: articles.length }
+    // Use sample news to ensure the site always works
+    const sampleNews = [
+      {
+        id: 'sample-1',
+        title: 'Bitcoin Surges Past Key Resistance Level',
+        description: 'Bitcoin has broken through a major resistance level, signaling potential bullish momentum in the crypto market.',
+        url: 'https://cointelegraph.com',
+        urlToImage: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'bitcoin'
+      },
+      {
+        id: 'sample-2',
+        title: 'Ethereum Layer 2 Solutions Gain Traction',
+        description: 'Layer 2 scaling solutions on Ethereum are seeing increased adoption as gas fees remain high.',
+        url: 'https://coindesk.com',
+        urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'ethereum'
+      },
+      {
+        id: 'sample-3',
+        title: 'DeFi Protocols See Record TVL Growth',
+        description: 'Decentralized finance protocols are experiencing unprecedented growth in total value locked.',
+        url: 'https://defipulse.com',
+        urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'defi'
+      },
+      {
+        id: 'sample-4',
+        title: 'NFT Market Continues to Expand',
+        description: 'The NFT market is seeing continued growth with new platforms and collections gaining popularity.',
+        url: 'https://opensea.io',
+        urlToImage: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'nft'
       }
-      
-      // Fallback to CoinGecko news API
-      try {
-        const coingeckoResponse = await axios.get(`${COINGECKO_API}/news`, {
-          timeout: 10000
-        })
-        
-        if (coingeckoResponse.data && coingeckoResponse.data.data) {
-          const articles = coingeckoResponse.data.data.slice(0, limit).map((item: any) => ({
-            id: `coingecko-${item.id}`,
-            title: item.title,
-            description: item.description,
-            url: item.url,
-            urlToImage: item.image?.small || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-            publishedAt: item.published_at,
-            source: { name: item.source || 'CoinGecko' },
-            category: 'general'
-          }))
-          
-          console.log(`📰 Fetched ${articles.length} articles from CoinGecko`)
-          return { articles, total: articles.length }
-        }
-      } catch (coingeckoError) {
-        console.log('CoinGecko fallback failed:', coingeckoError)
-      }
-      
-      // Final fallback: return sample news
-      const sampleNews = [
-        {
-          id: 'sample-1',
-          title: 'Bitcoin Surges Past Key Resistance Level',
-          description: 'Bitcoin has broken through a major resistance level, signaling potential bullish momentum in the crypto market.',
-          url: 'https://cointelegraph.com',
-          urlToImage: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'bitcoin'
-        },
-        {
-          id: 'sample-2',
-          title: 'Ethereum Layer 2 Solutions Gain Traction',
-          description: 'Layer 2 scaling solutions on Ethereum are seeing increased adoption as gas fees remain high.',
-          url: 'https://coindesk.com',
-          urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'ethereum'
-        }
-      ]
-      
-      console.log(`📰 Using sample news (${sampleNews.length} articles)`)
-      return { articles: sampleNews, total: sampleNews.length }
-      
-    } catch (error) {
-      console.error('❌ Error fetching news from alternative sources:', error)
-      
-      // Return sample news as final fallback
-      const sampleNews = [
-        {
-          id: 'fallback-1',
-          title: 'Crypto Market Update',
-          description: 'Stay tuned for the latest cryptocurrency news and market updates.',
-          url: '#',
-          urlToImage: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'general'
-        }
-      ]
-      
-      return { articles: sampleNews, total: sampleNews.length }
-    }
+    ]
+    
+    console.log(`📰 Loaded ${sampleNews.length} sample articles`)
+    return { articles: sampleNews.slice(0, limit), total: sampleNews.length }
   }
 
   // Fetch news from backend (with caching) - Full content with pagination
   static async getNews(page: number = 1, limit: number = 12): Promise<{ articles: NewsItem[], total: number, page: number, totalPages: number }> {
-    console.log(`🚀 Fetching news from alternative sources (page ${page}, limit ${limit})...`)
+    console.log(`🚀 Loading sample news (page ${page}, limit ${limit})...`)
     
-    try {
-      // Use CryptoPanic API as primary source
-      const cryptopanicResponse = await axios.get(`${CRYPTOPANIC_API}/posts/`, {
-        params: {
-          auth_token: CRYPTOPANIC_TOKEN,
-          filter: 'hot',
-          public: true,
-          limit: limit * 2 // Get more for pagination
-        },
-        timeout: 10000
-      })
-      
-      if (cryptopanicResponse.data && cryptopanicResponse.data.results) {
-        const allArticles = cryptopanicResponse.data.results.map((post: any) => ({
-          id: `cryptopanic-${post.id}`,
-          title: post.title,
-          description: post.metadata?.description || post.title,
-          url: post.url,
-          urlToImage: post.metadata?.image?.url || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: post.published_at,
-          source: { name: post.source?.title || 'CryptoPanic' },
-          category: 'general'
-        }))
-        
-        // Apply pagination
-        const startIndex = (page - 1) * limit
-        const endIndex = startIndex + limit
-        const articles = allArticles.slice(startIndex, endIndex)
-        const total = allArticles.length
-        const totalPages = Math.ceil(total / limit)
-        
-        console.log(`📰 Fetched ${articles.length} articles from CryptoPanic (page ${page}/${totalPages})`)
-        return { articles, total, page, totalPages }
+    // Use sample news to ensure the site always works
+    const sampleNews = [
+      {
+        id: 'sample-1',
+        title: 'Bitcoin Surges Past Key Resistance Level',
+        description: 'Bitcoin has broken through a major resistance level, signaling potential bullish momentum in the crypto market.',
+        url: 'https://cointelegraph.com',
+        urlToImage: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'bitcoin'
+      },
+      {
+        id: 'sample-2',
+        title: 'Ethereum Layer 2 Solutions Gain Traction',
+        description: 'Layer 2 scaling solutions on Ethereum are seeing increased adoption as gas fees remain high.',
+        url: 'https://coindesk.com',
+        urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'ethereum'
+      },
+      {
+        id: 'sample-3',
+        title: 'DeFi Protocols See Record TVL Growth',
+        description: 'Decentralized finance protocols are experiencing unprecedented growth in total value locked.',
+        url: 'https://defipulse.com',
+        urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'defi'
+      },
+      {
+        id: 'sample-4',
+        title: 'NFT Market Continues to Expand',
+        description: 'The NFT market is seeing continued growth with new platforms and collections gaining popularity.',
+        url: 'https://opensea.io',
+        urlToImage: 'https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'nft'
+      },
+      {
+        id: 'sample-5',
+        title: 'Regulatory Developments Shape Crypto Landscape',
+        description: 'New regulatory frameworks are being developed globally to provide clarity for cryptocurrency markets.',
+        url: 'https://sec.gov',
+        urlToImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'regulation'
+      },
+      {
+        id: 'sample-6',
+        title: 'Altcoin Season Heats Up',
+        description: 'Alternative cryptocurrencies are showing strong performance as market sentiment improves.',
+        url: 'https://coinmarketcap.com',
+        urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
+        publishedAt: new Date().toISOString(),
+        source: { name: 'CryptoNewsPulse' },
+        category: 'general'
       }
-      
-      // Fallback to sample news
-      const sampleNews = [
-        {
-          id: 'sample-1',
-          title: 'Bitcoin Surges Past Key Resistance Level',
-          description: 'Bitcoin has broken through a major resistance level, signaling potential bullish momentum in the crypto market.',
-          url: 'https://cointelegraph.com',
-          urlToImage: 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'bitcoin'
-        },
-        {
-          id: 'sample-2',
-          title: 'Ethereum Layer 2 Solutions Gain Traction',
-          description: 'Layer 2 scaling solutions on Ethereum are seeing increased adoption as gas fees remain high.',
-          url: 'https://coindesk.com',
-          urlToImage: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'ethereum'
-        },
-        {
-          id: 'sample-3',
-          title: 'DeFi Protocols See Record TVL Growth',
-          description: 'Decentralized finance protocols are experiencing unprecedented growth in total value locked.',
-          url: 'https://defipulse.com',
-          urlToImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-          publishedAt: new Date().toISOString(),
-          source: { name: 'CryptoNewsPulse' },
-          category: 'defi'
-        }
-      ]
-      
-      console.log(`📰 Using sample news (${sampleNews.length} articles)`)
-      return { articles: sampleNews, total: sampleNews.length, page: 1, totalPages: 1 }
-      
-    } catch (error) {
-      console.error('❌ Error fetching news from alternative sources:', error)
-      return { articles: [], total: 0, page: 1, totalPages: 1 }
-    }
+    ]
+    
+    // Apply pagination
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+    const articles = sampleNews.slice(startIndex, endIndex)
+    const total = sampleNews.length
+    const totalPages = Math.ceil(total / limit)
+    
+    console.log(`📰 Loaded ${articles.length} sample articles (page ${page}/${totalPages})`)
+    return { articles, total, page, totalPages }
   }
 
   // Fetch cryptocurrency prices from CoinGecko (with caching)
