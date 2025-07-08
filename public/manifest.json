@@ -1,0 +1,21 @@
+{
+  "name": "CryptoNewsPulse",
+  "short_name": "CryptoNews",
+  "description": "Real-time cryptocurrency news and market data",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#fbbf24",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

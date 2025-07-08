@@ -1,0 +1,9 @@
+@echo off
+echo Starting CryptoNewsPulse Server...
+echo.
+echo Killing any existing Node processes...
+taskkill /f /im node.exe 2>nul
+echo.
+echo Starting server on port 3001...
+node server.cjs
+pause 

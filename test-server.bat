@@ -1,0 +1,13 @@
+@echo off
+echo Testing CryptoNewsPulse Server...
+echo.
+echo Testing server health...
+curl -s http://localhost:3001/health
+echo.
+echo Testing fast news endpoint...
+curl -s http://localhost:3001/api/news/fast?limit=3
+echo.
+echo Testing Bitcoin dominance...
+curl -s http://localhost:3001/api/bitcoin-dominance
+echo.
+pause 

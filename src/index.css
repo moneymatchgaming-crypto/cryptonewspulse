@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom utilities */
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-crypto-primary via-purple-900 to-crypto-primary text-white;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-gradient-to-br from-crypto-secondary to-purple-800 rounded-lg p-6 shadow-lg border border-crypto-accent/20 backdrop-blur-sm;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-crypto-accent to-yellow-500 hover:from-yellow-500 hover:to-crypto-accent text-gray-900 font-semibold px-4 py-2 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-crypto-secondary to-purple-700 hover:from-purple-700 hover:to-crypto-secondary text-white px-4 py-2 rounded-lg border border-crypto-accent/20 transition-all duration-300 shadow-lg hover:shadow-xl;
+  }
+} 
