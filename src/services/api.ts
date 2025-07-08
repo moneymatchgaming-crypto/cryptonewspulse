@@ -100,105 +100,116 @@ const COINMARKETCAP_API = 'https://pro-api.coinmarketcap.com/v1'
 export class ApiService {
   // Fetch news from backend (with caching) - Fast loading for initial page
   static async getNewsFast(limit: number = 12): Promise<{ articles: NewsItem[], total: number }> {
+    // For now, use external APIs since backend is not deployed
+    console.log('🚀 Fetching news from external APIs...')
+    
     try {
-      console.log('🚀 Fetching fast news from backend...')
+      // Try multiple RSS feeds for better coverage
+      const rssUrls = [
+        'https://cointelegraph.com/rss',
+        'https://coindesk.com/arc/outboundfeeds/rss/',
+        'https://cryptonews.com/news/feed'
+      ]
       
-      // Use the new fast loading endpoint
-      const response = await axios.get(`${API_BASE_URL}/api/news/fast`, {
-        params: { limit },
-        timeout: 10000
+      const newsPromises = rssUrls.map(async (url) => {
+        try {
+          const response = await axios.get('https://api.rss2json.com/v1/api.json', {
+            params: {
+              rss_url: url,
+              count: Math.ceil(limit / rssUrls.length)
+            },
+            timeout: 8000
+          })
+          
+          return response.data.items.map((item: any) => ({
+            id: item.guid || `rss-${Date.now()}-${Math.random()}`,
+            title: item.title,
+            description: item.description,
+            url: item.link,
+            urlToImage: item.thumbnail || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+            publishedAt: item.pubDate,
+            source: { name: response.data.feed?.title || 'Crypto News' },
+            category: 'general'
+          }))
+        } catch (error) {
+          console.log(`Failed to fetch from ${url}:`, error)
+          return []
+        }
       })
       
-      const { articles, total, cached, timestamp, cacheAge, stale } = response.data
+      const results = await Promise.all(newsPromises)
+      const allArticles = results.flat().slice(0, limit)
       
-      console.log(`📰 Fast news response: ${articles.length} articles, total: ${total}, cached: ${cached}, stale: ${stale || false}`)
-      if (cached && cacheAge) {
-        console.log(`⏰ Cache age: ${Math.round(cacheAge / 1000)}s`)
-      }
+      console.log(`📰 Fetched ${allArticles.length} articles from external sources`)
+      return { articles: allArticles, total: allArticles.length }
       
-      return { articles, total }
     } catch (error) {
-      console.error('❌ Error fetching fast news from backend:', error)
-      
-      // Fallback to direct RSS fetching if backend is not available
-      console.log('🔄 Falling back to direct RSS fetching...')
-      try {
-        const response = await axios.get('https://api.rss2json.com/v1/api.json', {
-          params: {
-            rss_url: 'https://cointelegraph.com/rss',
-            count: limit
-          },
-          timeout: 10000
-        })
-        
-        const articles = response.data.items.map((item: any) => ({
-          id: item.guid || `fallback-${Date.now()}`,
-          title: item.title,
-          description: item.description,
-          url: item.link,
-          urlToImage: item.thumbnail || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: item.pubDate,
-          source: { name: 'CoinTelegraph' },
-          category: 'general'
-        }))
-        
-        return { articles, total: articles.length }
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError)
-        return { articles: [], total: 0 }
-      }
+      console.error('❌ Error fetching news from external sources:', error)
+      return { articles: [], total: 0 }
     }
   }
 
   // Fetch news from backend (with caching) - Full content with pagination
   static async getNews(page: number = 1, limit: number = 12): Promise<{ articles: NewsItem[], total: number, page: number, totalPages: number }> {
+    // For now, use external APIs since backend is not deployed
+    console.log(`🚀 Fetching news from external APIs (page ${page}, limit ${limit})...`)
+    
     try {
-      console.log(`🚀 Fetching news from backend (page ${page}, limit ${limit})...`)
+      // Try multiple RSS feeds for better coverage
+      const rssUrls = [
+        'https://cointelegraph.com/rss',
+        'https://coindesk.com/arc/outboundfeeds/rss/',
+        'https://cryptonews.com/news/feed',
+        'https://bitcoinmagazine.com/.rss/full/',
+        'https://decrypt.co/feed'
+      ]
       
-      // Use the new cached backend endpoint with pagination
-      const response = await axios.get(`${API_BASE_URL}/api/news`, {
-        params: { page, limit },
-        timeout: 10000
+      const newsPromises = rssUrls.map(async (url) => {
+        try {
+          const response = await axios.get('https://api.rss2json.com/v1/api.json', {
+            params: {
+              rss_url: url,
+              count: Math.ceil(limit * 2 / rssUrls.length) // Get more to allow for pagination
+            },
+            timeout: 8000
+          })
+          
+          return response.data.items.map((item: any) => ({
+            id: item.guid || `rss-${Date.now()}-${Math.random()}`,
+            title: item.title,
+            description: item.description,
+            url: item.link,
+            urlToImage: item.thumbnail || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
+            publishedAt: item.pubDate,
+            source: { name: response.data.feed?.title || 'Crypto News' },
+            category: 'general'
+          }))
+        } catch (error) {
+          console.log(`Failed to fetch from ${url}:`, error)
+          return []
+        }
       })
       
-      const { articles, total, page: currentPage, totalPages, cached, timestamp, cacheAge, stale } = response.data
+      const results = await Promise.all(newsPromises)
+      const allArticles = results.flat()
       
-      console.log(`📰 News response: ${articles.length} articles, page ${currentPage}/${totalPages}, cached: ${cached}, stale: ${stale || false}`)
-      if (cached && cacheAge) {
-        console.log(`⏰ Cache age: ${Math.round(cacheAge / 1000)}s`)
-      }
+      // Sort by date and apply pagination
+      const sortedArticles = allArticles.sort((a, b) => 
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      )
       
-      return { articles, total, page: currentPage, totalPages }
+      const startIndex = (page - 1) * limit
+      const endIndex = startIndex + limit
+      const articles = sortedArticles.slice(startIndex, endIndex)
+      const total = sortedArticles.length
+      const totalPages = Math.ceil(total / limit)
+      
+      console.log(`📰 Fetched ${articles.length} articles from external sources (page ${page}/${totalPages})`)
+      return { articles, total, page, totalPages }
+      
     } catch (error) {
-      console.error('❌ Error fetching news from backend:', error)
-      
-      // Fallback to direct RSS fetching if backend is not available
-      console.log('🔄 Falling back to direct RSS fetching...')
-      try {
-        const response = await axios.get('https://api.rss2json.com/v1/api.json', {
-          params: {
-            rss_url: 'https://cointelegraph.com/rss',
-            count: limit
-          },
-          timeout: 10000
-        })
-        
-        const articles = response.data.items.map((item: any) => ({
-          id: item.guid || `fallback-${Date.now()}`,
-          title: item.title,
-          description: item.description,
-          url: item.link,
-          urlToImage: item.thumbnail || 'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?w=400',
-          publishedAt: item.pubDate,
-          source: { name: 'CoinTelegraph' },
-          category: 'general'
-        }))
-        
-        return { articles, total: articles.length, page: 1, totalPages: 1 }
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError)
-        return { articles: [], total: 0, page: 1, totalPages: 1 }
-      }
+      console.error('❌ Error fetching news from external sources:', error)
+      return { articles: [], total: 0, page: 1, totalPages: 1 }
     }
   }
 
