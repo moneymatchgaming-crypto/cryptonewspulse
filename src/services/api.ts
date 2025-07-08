@@ -892,7 +892,7 @@ export class ApiService {
       }
       
       // Debug: Show breakdown by source
-      const sourceBreakdown = news.reduce((acc, article) => {
+      const sourceBreakdown = news.reduce((acc: Record<string, number>, article: any) => {
         const source = article.source.name
         acc[source] = (acc[source] || 0) + 1
         return acc
