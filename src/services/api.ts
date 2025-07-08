@@ -104,6 +104,8 @@ export class ApiService {
       // Try RSS2JSON API with API key
       const RSS2JSON_API_KEY = import.meta.env.VITE_RSS2JSON_API_KEY || 'YOUR_API_KEY_HERE'
       
+      console.log('🔑 RSS2JSON API Key status:', RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE' ? 'NOT CONFIGURED' : 'CONFIGURED')
+      
       if (RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE') {
         console.log('⚠️ RSS2JSON API key not configured. Please add VITE_RSS2JSON_API_KEY to your environment variables.')
         throw new Error('API key not configured')
@@ -207,6 +209,8 @@ export class ApiService {
     try {
       // Try RSS2JSON API with API key
       const RSS2JSON_API_KEY = import.meta.env.VITE_RSS2JSON_API_KEY || 'YOUR_API_KEY_HERE'
+      
+      console.log('🔑 RSS2JSON API Key status:', RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE' ? 'NOT CONFIGURED' : 'CONFIGURED')
       
       if (RSS2JSON_API_KEY === 'YOUR_API_KEY_HERE') {
         console.log('⚠️ RSS2JSON API key not configured. Please add VITE_RSS2JSON_API_KEY to your environment variables.')
@@ -741,21 +745,24 @@ export class ApiService {
     }
   }
 
-  // Parse RSS JSON (from local proxy) to NewsItem objects
+  // Parse RSS JSON (from RSS2JSON API) to NewsItem objects
   private static parseRSSFromJSON(jsonData: any, feedIndex: number): NewsItem[] {
     try {
-      const channel = jsonData.rss.channel[0]
-      const items = channel.item || []
+      // Check if this is an error response from RSS2JSON
+      if (jsonData.status === 'error') {
+        console.log(`RSS2JSON error for feed ${feedIndex}:`, jsonData.message)
+        return []
+      }
+      
+      // RSS2JSON API returns items directly in the items array
+      const items = jsonData.items || []
       
       return items.map((item: any, index: number) => {
-        const title = item.title?.[0] || ''
-        const description = item.description?.[0] || ''
-        const link = item.link?.[0] || ''
-        const pubDate = item.pubDate?.[0] || new Date().toISOString()
-        
-        // Try to extract image from description or use default
-        const imgMatch = description.match(/<img[^>]+src="([^"]+)"/)
-        const imageUrl = imgMatch ? imgMatch[1] : this.getDefaultImage(feedIndex)
+        const title = item.title || ''
+        const description = item.description || ''
+        const link = item.link || ''
+        const pubDate = item.pubDate || new Date().toISOString()
+        const imageUrl = item.thumbnail || this.getDefaultImage(feedIndex)
         
         return {
           id: `rss-json-${feedIndex}-${index}`,
