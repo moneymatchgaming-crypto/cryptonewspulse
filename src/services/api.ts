@@ -173,7 +173,7 @@ export class ApiService {
     }
     
     // Final fallback: return sample news
-    const sampleNews = [
+    const sampleNews: NewsItem[] = [
       {
         id: 'sample-1',
         title: 'Bitcoin Surges Past Key Resistance Level',
@@ -289,7 +289,7 @@ export class ApiService {
     }
     
     // Final fallback: return sample news
-    const sampleNews = [
+    const sampleNews: NewsItem[] = [
       {
         id: 'sample-1',
         title: 'Bitcoin Surges Past Key Resistance Level',
