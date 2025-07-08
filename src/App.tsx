@@ -55,13 +55,13 @@ function App() {
         setPrices(priceData)
         setLastUpdate(new Date())
         
-        // Set initial pagination using the actual total from the backend
+        // Set initial pagination - always show "See More" button
         const totalPages = Math.ceil(fastNewsData.total / 12)
         setNewsPagination({
           total: fastNewsData.total,
           page: 1,
           totalPages: totalPages,
-          hasMore: totalPages > 1
+          hasMore: true // Always show "See More" button
         })
         
         console.log('✅ Initial fast load complete')
@@ -90,7 +90,7 @@ function App() {
         total: result.total,
         page: result.page,
         totalPages: result.totalPages,
-        hasMore: result.page < result.totalPages
+        hasMore: true // Always show "See More" button
       })
       
       setLastUpdate(new Date())
@@ -114,7 +114,7 @@ function App() {
           total: result.total,
           page: 1,
           totalPages: result.totalPages,
-          hasMore: result.totalPages > 1
+          hasMore: true // Always show "See More" button
         })
         setLastUpdate(new Date())
         console.log('✅ News refreshed successfully')

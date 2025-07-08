@@ -111,15 +111,15 @@ export class ApiService {
         throw new Error('API key not configured')
       }
       
-      // Use the first few RSS feeds for fast loading
-      const fastFeeds = RSS_FEEDS.slice(0, 5)
+      // Use the first few RSS feeds for fast loading, but get more articles for better pagination
+      const fastFeeds = RSS_FEEDS.slice(0, 8) // Use more feeds for better coverage
       const feedPromises = fastFeeds.map(async (feedUrl, index) => {
         try {
           const response = await axios.get('https://api.rss2json.com/v1/api.json', {
             params: {
               rss_url: feedUrl,
               api_key: RSS2JSON_API_KEY,
-              count: Math.ceil(limit / fastFeeds.length)
+              count: 15 // Get more articles per feed for better pagination
             },
             timeout: 10000
           })
@@ -138,11 +138,12 @@ export class ApiService {
         .filter(result => result.status === 'fulfilled')
         .flatMap(result => (result as PromiseFulfilledResult<NewsItem[]>).value)
         .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-        .slice(0, limit)
       
       if (allArticles.length > 0) {
-        console.log(`📰 Fetched ${allArticles.length} articles from RSS feeds`)
-        return { articles: allArticles, total: allArticles.length }
+        // Return first page of articles, but provide total count for pagination
+        const firstPageArticles = allArticles.slice(0, limit)
+        console.log(`📰 Fetched ${firstPageArticles.length} articles from RSS feeds (${allArticles.length} total available)`)
+        return { articles: firstPageArticles, total: allArticles.length }
       }
       
     } catch (error) {
