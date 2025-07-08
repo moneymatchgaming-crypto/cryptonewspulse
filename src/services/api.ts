@@ -459,35 +459,6 @@ export class ApiService {
     }
   }
 
-  // Fetch news from CryptoPanic API
-  static async getNewsFromCryptoPanic(): Promise<NewsItem[]> {
-    try {
-      const response = await axios.get(`${CRYPTOPANIC_API}/posts/`, {
-        params: {
-          auth_token: CRYPTOPANIC_TOKEN,
-          public: true,
-          regions: 'en',
-          kind: 'news',
-          filter: 'hot'
-        }
-      })
-
-      return response.data.results.map((post: any, index: number) => ({
-        id: `cryptopanic-${post.id || index}`,
-        title: post.title,
-        description: post.metadata?.description || post.title,
-        url: post.url,
-        urlToImage: post.metadata?.image?.url || this.getDefaultImage(0),
-        publishedAt: post.published_at,
-        source: { name: post.source?.title || 'CryptoPanic' },
-        category: this.categorizeNews(post.title, post.metadata?.description || '')
-      }))
-    } catch (error) {
-      console.error('Error fetching news from CryptoPanic:', error)
-      return []
-    }
-  }
-
   // Fetch news from CoinGecko status updates
   static async getNewsFromCoinGecko(): Promise<NewsItem[]> {
     try {
