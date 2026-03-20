@@ -176,7 +176,8 @@ export default function AdminEditor() {
     }
     setSaving(true)
     try {
-      const data = { ...form, published: publish !== undefined ? publish : form.published }
+      const publishedVal = publish !== undefined ? publish : form.published
+      const data = { ...form, published: publishedVal ? 1 : 0 }
       if (isEdit) {
         await BlogApi.adminUpdatePost(Number(id), data)
       } else {
