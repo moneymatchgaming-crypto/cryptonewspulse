@@ -8,8 +8,19 @@ const fs = require('fs')
 const { execSync } = require('child_process')
 const multer = require('multer')
 
+// ── Detect main repo root (works from worktrees too) ──────────────────────────
+// git rev-parse --git-common-dir returns the shared .git dir path.
+// Going one level up from that always gives the main repo root.
+let REPO_ROOT = __dirname
+try {
+  const gitCommonDir = execSync('git rev-parse --git-common-dir', { cwd: __dirname }).toString().trim()
+  REPO_ROOT = path.isAbsolute(gitCommonDir)
+    ? path.resolve(gitCommonDir, '..')
+    : path.resolve(__dirname, gitCommonDir, '..')
+} catch { /* not a git repo, fall back to __dirname */ }
+
 // ── Image upload (multer → public/images/blog/) ────────────────────────────────
-const blogImagesDir = path.join(__dirname, 'public', 'images', 'blog')
+const blogImagesDir = path.join(REPO_ROOT, 'public', 'images', 'blog')
 if (!fs.existsSync(blogImagesDir)) fs.mkdirSync(blogImagesDir, { recursive: true })
 
 const imageStorage = multer.diskStorage({
@@ -40,7 +51,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 // ── File-based post storage ────────────────────────────────────────────────────
 // Posts live in public/content/posts/ so Vite copies them into dist/ at build
 // time — Vercel then serves them as static files with no backend required.
-const postsDir = path.join(__dirname, 'public', 'content', 'posts')
+const postsDir = path.join(REPO_ROOT, 'public', 'content', 'posts')
 if (!fs.existsSync(postsDir)) fs.mkdirSync(postsDir, { recursive: true })
 
 // _index.json is a lightweight manifest (no content field) for blog listing pages
@@ -1138,14 +1149,14 @@ app.post('/api/admin/upload', requireAuth, upload.single('image'), (req, res) =>
 app.post('/api/admin/publish', requireAuth, (req, res) => {
   const message = (req.body && req.body.message) || `Blog update ${new Date().toISOString().slice(0, 10)}`
   try {
-    execSync('git add public/content/posts/ public/images/blog/', { cwd: __dirname })
+    execSync('git add public/content/posts/ public/images/blog/', { cwd: REPO_ROOT })
     // Check if there's anything to commit
-    const status = execSync('git status --porcelain public/content/posts/ public/images/blog/', { cwd: __dirname }).toString().trim()
+    const status = execSync('git status --porcelain public/content/posts/ public/images/blog/', { cwd: REPO_ROOT }).toString().trim()
     if (!status) {
       return res.json({ success: true, message: 'Nothing new to publish — site is already up to date.' })
     }
-    execSync(`git commit -m "${message.replace(/"/g, "'")}"`, { cwd: __dirname })
-    execSync('git push --set-upstream origin HEAD', { cwd: __dirname })
+    execSync(`git commit -m "${message.replace(/"/g, "'")}"`, { cwd: REPO_ROOT })
+    execSync('git push --set-upstream origin HEAD', { cwd: REPO_ROOT })
     res.json({ success: true, message: 'Published! Vercel will deploy in ~30 seconds.' })
   } catch (err) {
     console.error('Publish error:', err.message)
