@@ -92,5 +92,16 @@ Thumbs.db
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
 .vercel
+
+# Legacy SQLite database (replaced by file-based storage)
+blog.db
+
+# Legacy uploads directory (images now go to public/images/blog/)
+uploads/
+
+# Keep public/content/posts and public/images/blog — do NOT ignore these
+# public/content/posts/*.json  ← committed to git, served statically by Vercel
+# public/content/posts/_index.json  ← auto-generated blog listing manifest
+# public/images/blog/*  ← committed to git, served by Vercel CDN

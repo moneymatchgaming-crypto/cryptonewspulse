@@ -1,5 +1,6 @@
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 
 interface HeaderProps {
   selectedFilter: string
@@ -8,6 +9,8 @@ interface HeaderProps {
 
 const Header = ({ selectedFilter, onFilterChange }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const location = useLocation()
+  const isHome = location.pathname === '/'
 
   const filters = [
     { id: 'all', name: 'All News' },
@@ -30,25 +33,21 @@ const Header = ({ selectedFilter, onFilterChange }: HeaderProps) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <a 
-              href="/" 
+            <Link
+              to="/"
               className="cursor-pointer hover:opacity-80 transition-opacity duration-200"
-              onClick={(e) => {
-                e.preventDefault()
-                window.location.reload()
-              }}
             >
-              <img 
-                src="/logo.png" 
-                alt="CryptoNewsPulse" 
+              <img
+                src="/logo.png"
+                alt="CryptoNewsPulse"
                 className="h-44 w-auto"
               />
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-1">
-            {filters.map((filter) => (
+          <nav className="hidden md:flex space-x-1 items-center">
+            {isHome && filters.map((filter) => (
               <button
                 key={filter.id}
                 onClick={() => handleFilterClick(filter.id)}
@@ -61,6 +60,16 @@ const Header = ({ selectedFilter, onFilterChange }: HeaderProps) => {
                 {filter.name}
               </button>
             ))}
+            <Link
+              to="/blog"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                location.pathname.startsWith('/blog')
+                  ? 'bg-crypto-accent text-gray-900 shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-crypto-secondary/50'
+              }`}
+            >
+              Blog
+            </Link>
           </nav>
 
           {/* Mobile menu button */}

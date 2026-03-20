@@ -2,11 +2,109 @@ const express = require('express')
 const cors = require('cors')
 const axios = require('axios')
 const xml2js = require('xml2js')
+const jwt = require('jsonwebtoken')
+const path = require('path')
+const fs = require('fs')
+const { execSync } = require('child_process')
+const multer = require('multer')
+
+// ── Image upload (multer → public/images/blog/) ────────────────────────────────
+const blogImagesDir = path.join(__dirname, 'public', 'images', 'blog')
+if (!fs.existsSync(blogImagesDir)) fs.mkdirSync(blogImagesDir, { recursive: true })
+
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, blogImagesDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+    cb(null, name)
+  }
+})
+const upload = multer({
+  storage: imageStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true)
+    else cb(new Error('Only image files are allowed'))
+  }
+})
 
 // Environment configuration
 const PORT = process.env.PORT || 3001
 const NODE_ENV = process.env.NODE_ENV || 'development'
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000'
+const JWT_SECRET = process.env.JWT_SECRET || 'cnp-dev-secret-change-in-production'
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
+
+// ── File-based post storage ────────────────────────────────────────────────────
+// Posts live in public/content/posts/ so Vite copies them into dist/ at build
+// time — Vercel then serves them as static files with no backend required.
+const postsDir = path.join(__dirname, 'public', 'content', 'posts')
+if (!fs.existsSync(postsDir)) fs.mkdirSync(postsDir, { recursive: true })
+
+// _index.json is a lightweight manifest (no content field) for blog listing pages
+const indexPath = path.join(postsDir, '_index.json')
+if (!fs.existsSync(indexPath)) fs.writeFileSync(indexPath, '[]')
+
+function readAllPosts() {
+  return fs.readdirSync(postsDir)
+    .filter(f => f.endsWith('.json') && f !== '_index.json')
+    .map(f => {
+      try { return JSON.parse(fs.readFileSync(path.join(postsDir, f), 'utf8')) }
+      catch { return null }
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+}
+
+function readPost(slug) {
+  const filePath = path.join(postsDir, `${slug}.json`)
+  if (!fs.existsSync(filePath)) return null
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+}
+
+function writePost(post) {
+  fs.writeFileSync(path.join(postsDir, `${post.slug}.json`), JSON.stringify(post, null, 2))
+  rebuildIndex()
+}
+
+function deletePost(slug) {
+  const filePath = path.join(postsDir, `${slug}.json`)
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+  rebuildIndex()
+}
+
+// Regenerate the public listing manifest after any post change
+function rebuildIndex() {
+  const summary = readAllPosts()
+    .filter(p => p.published === 1)
+    .map(({ id, title, slug, excerpt, cover_image, category, published, created_at }) =>
+      ({ id, title, slug, excerpt, cover_image, category, published, created_at }))
+  fs.writeFileSync(indexPath, JSON.stringify(summary, null, 2))
+}
+
+// ── Auth middleware ────────────────────────────────────────────────────────────
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  try {
+    req.user = jwt.verify(auth.slice(7), JWT_SECRET)
+    next()
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' })
+  }
+}
+
+// ── Slug helper ────────────────────────────────────────────────────────────────
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
 
 const app = express()
 
@@ -921,6 +1019,148 @@ app.get('/api/cache-status', (req, res) => {
       cacheDuration: MARKET_DATA_CACHE_DURATION
     }
   })
+})
+
+// ── Auth routes ───────────────────────────────────────────────────────────────
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' })
+
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Invalid credentials' })
+  }
+
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' })
+  res.json({ token, username })
+})
+
+// ── Blog public routes ────────────────────────────────────────────────────────
+app.get('/api/blog', (req, res) => {
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 10
+  const category = req.query.category || null
+
+  let posts = readAllPosts()
+    .filter(p => p.published === 1)
+    .map(({ id, title, slug, excerpt, cover_image, category, created_at }) =>
+      ({ id, title, slug, excerpt, cover_image, category, created_at }))
+
+  if (category) posts = posts.filter(p => p.category === category)
+
+  const total = posts.length
+  const paged = posts.slice((page - 1) * limit, page * limit)
+  res.json({ posts: paged, total, page, limit, totalPages: Math.ceil(total / limit) })
+})
+
+app.get('/api/blog/:slug', (req, res) => {
+  const post = readPost(req.params.slug)
+  if (!post || !post.published) return res.status(404).json({ error: 'Post not found' })
+  res.json(post)
+})
+
+// ── Blog admin routes (protected) ─────────────────────────────────────────────
+app.get('/api/admin/posts', requireAuth, (req, res) => {
+  res.json(readAllPosts())
+})
+
+app.get('/api/admin/posts/:id', requireAuth, (req, res) => {
+  const targetId = parseInt(req.params.id)
+  const post = readAllPosts().find(p => p.id === targetId)
+  if (!post) return res.status(404).json({ error: 'Post not found' })
+  res.json(post)
+})
+
+app.post('/api/admin/posts', requireAuth, (req, res) => {
+  const { title, excerpt, content, cover_image, category, published } = req.body
+  if (!title || !content) return res.status(400).json({ error: 'Title and content required' })
+
+  let slug = slugify(title)
+  if (readPost(slug)) slug = `${slug}-${Date.now()}`
+
+  const now = new Date().toISOString()
+  const post = {
+    id: Date.now(),
+    title,
+    slug,
+    excerpt: excerpt || '',
+    content,
+    cover_image: cover_image || '',
+    category: category || 'general',
+    published: published ? 1 : 0,
+    created_at: now,
+    updated_at: now,
+  }
+  writePost(post)
+  res.status(201).json(post)
+})
+
+app.put('/api/admin/posts/:id', requireAuth, (req, res) => {
+  const targetId = parseInt(req.params.id)
+  const existing = readAllPosts().find(p => p.id === targetId)
+  if (!existing) return res.status(404).json({ error: 'Post not found' })
+
+  const { title, excerpt, content, cover_image, category, published } = req.body
+  const newSlug = title && title !== existing.title ? slugify(title) : existing.slug
+
+  // If slug changed, delete old file
+  if (newSlug !== existing.slug) deletePost(existing.slug)
+
+  const updated = {
+    ...existing,
+    title: title ?? existing.title,
+    slug: newSlug,
+    excerpt: excerpt ?? existing.excerpt,
+    content: content ?? existing.content,
+    cover_image: cover_image ?? existing.cover_image,
+    category: category ?? existing.category,
+    published: published !== undefined ? (published ? 1 : 0) : existing.published,
+    updated_at: new Date().toISOString(),
+  }
+  writePost(updated)
+  res.json(updated)
+})
+
+app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
+  const targetId = parseInt(req.params.id)
+  const post = readAllPosts().find(p => p.id === targetId)
+  if (!post) return res.status(404).json({ error: 'Post not found' })
+  deletePost(post.slug)
+  res.json({ success: true })
+})
+
+// ── Image upload → public/images/blog/ ────────────────────────────────────────
+app.post('/api/admin/upload', requireAuth, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
+  res.json({ url: `/images/blog/${req.file.filename}` })
+})
+
+// ── Git publish endpoint ───────────────────────────────────────────────────────
+app.post('/api/admin/publish', requireAuth, (req, res) => {
+  const message = (req.body && req.body.message) || `Blog update ${new Date().toISOString().slice(0, 10)}`
+  try {
+    execSync('git add public/content/posts/ public/images/blog/', { cwd: __dirname })
+    // Check if there's anything to commit
+    const status = execSync('git status --porcelain public/content/posts/ public/images/blog/', { cwd: __dirname }).toString().trim()
+    if (!status) {
+      return res.json({ success: true, message: 'Nothing new to publish — site is already up to date.' })
+    }
+    execSync(`git commit -m "${message.replace(/"/g, "'")}"`, { cwd: __dirname })
+    execSync('git push', { cwd: __dirname })
+    res.json({ success: true, message: 'Published! Vercel will deploy in ~30 seconds.' })
+  } catch (err) {
+    console.error('Publish error:', err.message)
+    res.status(500).json({ error: err.message || 'Git publish failed' })
+  }
+})
+
+// ── Admin password change ──────────────────────────────────────────────────────
+app.post('/api/admin/change-password', requireAuth, (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  if (currentPassword !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Current password is incorrect' })
+  }
+  // Password is stored in env — remind user to set ADMIN_PASSWORD env var
+  res.json({ success: true, note: 'Set ADMIN_PASSWORD env var to make permanent.' })
 })
 
 app.listen(PORT, () => {
