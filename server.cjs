@@ -1145,7 +1145,7 @@ app.post('/api/admin/publish', requireAuth, (req, res) => {
       return res.json({ success: true, message: 'Nothing new to publish — site is already up to date.' })
     }
     execSync(`git commit -m "${message.replace(/"/g, "'")}"`, { cwd: __dirname })
-    execSync('git push', { cwd: __dirname })
+    execSync('git push --set-upstream origin HEAD', { cwd: __dirname })
     res.json({ success: true, message: 'Published! Vercel will deploy in ~30 seconds.' })
   } catch (err) {
     console.error('Publish error:', err.message)
