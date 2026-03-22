@@ -8,11 +8,13 @@ import AdminLogin from './pages/admin/AdminLogin.tsx'
 import AdminDashboard from './pages/admin/AdminDashboard.tsx'
 import AdminEditor from './pages/admin/AdminEditor.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
+import PageTracker from './components/PageTracker.tsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <PageTracker />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/blog" element={<BlogList />} />
