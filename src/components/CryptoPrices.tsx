@@ -54,9 +54,12 @@ const CryptoPrices = ({ prices, refreshKey }: CryptoPricesProps) => {
         {prices.map((crypto) => (
           <div key={crypto.id} className="bg-crypto-primary rounded-lg p-4 border border-crypto-accent/20">
             <div className="flex items-center space-x-3 mb-3">
-              <img 
-                src={crypto.image} 
+              <img
+                src={crypto.image.replace('/large/', '/thumb/')}
                 alt={crypto.name}
+                width={32}
+                height={32}
+                loading="lazy"
                 className="w-8 h-8 rounded-full"
               />
               <div>

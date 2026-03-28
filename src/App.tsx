@@ -201,58 +201,52 @@ function App() {
       <StructuredData type="website" />
       <Header selectedFilter={selectedFilter} onFilterChange={handleFilterChange} />
       <main className="container mx-auto px-4 py-8 flex-grow">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crypto-gold"></div>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Auto-refresh status indicator */}
-            <div className="flex items-center justify-between text-sm text-gray-400 bg-crypto-secondary/20 rounded-lg p-3">
-              <div className="flex items-center space-x-4">
-                <span>Last updated: {formatLastUpdate(lastUpdate)}</span>
-                <div className="flex items-center space-x-2">
-                  {refreshing.news && (
-                    <div className="flex items-center space-x-1">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
-                      <span>News</span>
-                    </div>
-                  )}
-                  {refreshing.prices && (
-                    <div className="flex items-center space-x-1">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
-                      <span>Prices</span>
-                    </div>
-                  )}
-                  {refreshing.fearGreed && (
-                    <div className="flex items-center space-x-1">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
-                      <span>Fear & Greed</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="text-xs">
-                Auto-refresh: News (8m) | Prices (2m) | Fear & Greed (30m)
+        <div className="space-y-8">
+          {/* Status bar — always rendered so it never causes layout shift */}
+          <div className="flex items-center justify-between text-sm text-gray-400 bg-crypto-secondary/20 rounded-lg p-3">
+            <div className="flex items-center space-x-4">
+              <span>{loading ? 'Loading...' : `Last updated: ${formatLastUpdate(lastUpdate)}`}</span>
+              <div className="flex items-center space-x-2">
+                {refreshing.news && (
+                  <div className="flex items-center space-x-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
+                    <span>News</span>
+                  </div>
+                )}
+                {refreshing.prices && (
+                  <div className="flex items-center space-x-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
+                    <span>Prices</span>
+                  </div>
+                )}
+                {refreshing.fearGreed && (
+                  <div className="flex items-center space-x-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b border-crypto-gold"></div>
+                    <span>Fear & Greed</span>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Top News Carousel - Moved to top for immediate news visibility */}
-            <TopNewsCarousel articles={news} selectedFilter={selectedFilter} />
-            
-            <FearGreedIndex refreshKey={lastUpdate.getTime()} />
-            <CryptoPrices prices={prices} refreshKey={lastUpdate.getTime()} />
-            
-            <NewsGrid 
-              news={news} 
-              pagination={newsPagination}
-              onLoadMore={loadMoreNews}
-              loading={refreshing.news}
-              selectedCategory={selectedFilter}
-              onCategoryChange={handleFilterChange}
-            />
+            <div className="text-xs">
+              Auto-refresh: News (8m) | Prices (2m) | Fear & Greed (30m)
+            </div>
           </div>
-        )}
+
+          {/* Carousel — always rendered; handles its own empty/skeleton state */}
+          <TopNewsCarousel articles={news} selectedFilter={selectedFilter} />
+
+          <FearGreedIndex refreshKey={lastUpdate.getTime()} />
+          <CryptoPrices prices={prices} refreshKey={lastUpdate.getTime()} />
+
+          <NewsGrid
+            news={news}
+            pagination={newsPagination}
+            onLoadMore={loadMoreNews}
+            loading={loading || refreshing.news}
+            selectedCategory={selectedFilter}
+            onCategoryChange={handleFilterChange}
+          />
+        </div>
       </main>
       <Footer />
     </div>
