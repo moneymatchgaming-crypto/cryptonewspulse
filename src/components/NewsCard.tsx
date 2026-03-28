@@ -48,6 +48,10 @@ const NewsCard = ({ news }: NewsCardProps) => {
           <img
             src={news.urlToImage}
             alt={news.title}
+            width={400}
+            height={192}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
             onError={(e) => {
               const target = e.target as HTMLImageElement

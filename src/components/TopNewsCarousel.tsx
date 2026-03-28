@@ -132,7 +132,12 @@ const TopNewsCarousel = ({ articles, selectedFilter = 'all' }: TopNewsCarouselPr
     return `${diffInDays} days ago`
   }
   
-  if (topArticles.length === 0) return null
+  // Reserve carousel space while articles load to prevent CLS
+  if (topArticles.length === 0) return (
+    <div className="mb-12">
+      <div className="h-96 md:h-[500px] rounded-xl bg-crypto-secondary/20 border border-crypto-accent/20 animate-pulse" />
+    </div>
+  )
   
   return (
     <div className="mb-12">
@@ -223,12 +228,14 @@ const TopNewsCarousel = ({ articles, selectedFilter = 'all' }: TopNewsCarouselPr
           <>
             <button
               onClick={goToPrevious}
+              aria-label="Previous article"
               className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-crypto-primary/80 hover:bg-crypto-primary text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
             >
               <ChevronLeft size={24} />
             </button>
             <button
               onClick={goToNext}
+              aria-label="Next article"
               className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-crypto-primary/80 hover:bg-crypto-primary text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
             >
               <ChevronRight size={24} />
