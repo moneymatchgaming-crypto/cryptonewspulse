@@ -340,9 +340,8 @@ export class ApiService {
       
       return prices
     } catch (error) {
-      console.error('❌ Error fetching prices from backend:', error)
-      
-      // Fallback to direct API if backend is not available
+      // Backend unavailable (expected in production) — fall back silently
+      if (import.meta.env.DEV) console.warn('⚠️ Backend unavailable, falling back for prices')
       console.log('🔄 Falling back to direct CoinGecko API...')
       try {
         const response = await axios.get(`${COINGECKO_API}/coins/markets`, {
@@ -394,9 +393,7 @@ export class ApiService {
       
       return dominance
     } catch (error) {
-      console.error('❌ Error fetching dominance from backend:', error)
-      
-      // Fallback to direct API if backend is not available
+      if (import.meta.env.DEV) console.warn('⚠️ Backend unavailable, falling back for dominance')
       console.log('🔄 Falling back to direct CoinGecko API...')
       try {
         const response = await axios.get(`${COINGECKO_API}/global`, {
@@ -439,9 +436,7 @@ export class ApiService {
       
       return fearGreed
     } catch (error) {
-      console.error('❌ Error fetching Fear & Greed from backend:', error)
-      
-      // Fallback to direct API if backend is not available
+      if (import.meta.env.DEV) console.warn('⚠️ Backend unavailable, falling back for fear & greed')
       console.log('🔄 Falling back to direct API...')
       try {
         const response = await axios.get('https://api.alternative.me/fng/', {
@@ -995,9 +990,7 @@ export class ApiService {
       
       return news
     } catch (error) {
-      console.error('❌ Error fetching news from backend:', error)
-      
-      // Fallback to old method if backend is not available
+      if (import.meta.env.DEV) console.warn('⚠️ Backend unavailable, falling back for news')
       console.log('🔄 Falling back to direct RSS fetching...')
       try {
         const [rssNews, coingeckoNews, cryptocompareNews, messariNews, coingeckoNews2, cryptoslateNews] = await Promise.all([

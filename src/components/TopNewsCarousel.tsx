@@ -132,9 +132,15 @@ const TopNewsCarousel = ({ articles, selectedFilter = 'all' }: TopNewsCarouselPr
     return `${diffInDays} days ago`
   }
   
-  // Reserve carousel space while articles load to prevent CLS
+  // Reserve full carousel space (including header) while articles load to prevent CLS
   if (topArticles.length === 0) return (
     <div className="mb-12">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-2 h-8 bg-crypto-gold rounded-full"></div>
+          <h2 className="text-2xl font-bold text-white">🔥 Top News</h2>
+        </div>
+      </div>
       <div className="h-96 md:h-[500px] rounded-xl bg-crypto-secondary/20 border border-crypto-accent/20 animate-pulse" />
     </div>
   )
@@ -250,12 +256,15 @@ const TopNewsCarousel = ({ articles, selectedFilter = 'all' }: TopNewsCarouselPr
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index === currentSlide 
-                    ? 'bg-crypto-gold scale-125' 
+                aria-label={`Go to slide ${index + 1}`}
+                className="p-2 flex items-center justify-center"
+              >
+                <span className={`block w-3 h-3 rounded-full transition-all duration-200 ${
+                  index === currentSlide
+                    ? 'bg-crypto-gold scale-125'
                     : 'bg-white/50 hover:bg-white/75'
-                }`}
-              />
+                }`} />
+              </button>
             ))}
           </div>
         )}
