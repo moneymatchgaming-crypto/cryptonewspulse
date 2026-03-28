@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://cryptonewspulse.xyz/sitemap.xml
+# Block filter query params — same homepage content, no indexing value
+Disallow: /?filter=
 
-# Crawl-delay for respectful crawling
-Crawl-delay: 1 
+# Block admin routes
+Disallow: /admin
+
+Sitemap: https://cryptonewspulse.xyz/sitemap.xml

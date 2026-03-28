@@ -93,6 +93,41 @@ function rebuildIndex() {
     .map(({ id, title, slug, excerpt, cover_image, category, published, created_at }) =>
       ({ id, title, slug, excerpt, cover_image, category, published, created_at }))
   fs.writeFileSync(indexPath, JSON.stringify(summary, null, 2))
+  rebuildSitemap()
+}
+
+// Regenerate sitemap.xml so Google discovers new/removed blog posts automatically
+function rebuildSitemap() {
+  const SITE = 'https://cryptonewspulse.xyz'
+  const today = new Date().toISOString().slice(0, 10)
+  const posts = readAllPosts().filter(p => p.published === 1)
+
+  const postUrls = posts.map(p => `
+  <url>
+    <loc>${SITE}/blog/${p.slug}</loc>
+    <lastmod>${p.updated_at ? p.updated_at.slice(0, 10) : today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`).join('')
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${SITE}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${SITE}/blog</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>${postUrls}
+</urlset>`
+
+  const sitemapPath = path.join(REPO_ROOT, 'public', 'sitemap.xml')
+  fs.writeFileSync(sitemapPath, xml)
 }
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
